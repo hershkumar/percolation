@@ -39,7 +39,7 @@ def union(x, y):
 	global labels
 	labels[find(x)] = find(y)
 
-
+# Runs the Hoshen-Kopelman algorithm
 def HK(lattice):
 	lattice_size = len(lattice)
 	global labels
@@ -61,24 +61,30 @@ def HK(lattice):
 					label[x][y] = largest_label
 				# the left one is labeled and the one above is not
 				elif ((left != 0) and (above == 0)):
+                                        # use the label of the one to the left
 					label[x][y] = find(left)
 				# the cell above is labeled
 				elif ((left == 0) and (above != 0)):
+                                        # use the label of the one above
 					label[x][y] = find(above)
+                                #Both are labeled so we have to use union
 				else:
 					union(left, above)
 					label[x][y] = find(left)
 	return label
-
+# gets the number of clusters after running HK
 def count_clusters(clustered):
+        # cast the clustered array to a numpy array
 	new_array = np.asarray(clustered)
 	# now get the number of unique elements in the numpy array
 	# (the subtraction is to get rid of 0)
 	return len(np.unique(new_array))-1
 
 def main():
+        # length/width of each lattice
 	lattice_size = 100
-	num_runs = 1000
+        # Number of lattices we want to test
+	num_runs = 2000
 	probabilities = [(n/num_runs) for n in range(num_runs)]
 	y = [count_clusters(Perc(probabilities[n], lattice_size)) for n in range(num_runs)]
 	plt.scatter(probabilities, y)
