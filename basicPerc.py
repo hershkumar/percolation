@@ -10,8 +10,6 @@ from matplotlib import pyplot as plt
 def Perc(probability, lattice_size):
 	# 0 is blocked and 1 is open
 	global labels
-	global label_list
-	label_list = [n for n in range(int((lattice_size * lattice_size)/2))]
 	labels = [n for n in range(int((lattice_size * lattice_size)/2))]
 	lattice = [[0 for x in range(lattice_size)] for y in range(lattice_size)]
 	# set up the lattice
@@ -85,31 +83,34 @@ def HK(lattice):
 def HK2(lattice):
 	lattice_size = len(lattice)
 	global label_list
+	label_list = [n for n in range(int((lattice_size * lattice_size)/2))]
 	clustered = [[0 for x in range(lattice_size)] for y in range(lattice_size)]
 	index = 0
 	for x in range(lattice_size):
 		for y in range(lattice_size):
 			if (lattice[x][y] == 1):
-				left_label = clustered[x][y-1]
-				above_label = clustered[x-1][y]
+				left_label_index = clustered[x][y-1]
+				above_label_index = clustered[x-1][y]
 				if (x - 1 < 0):
-					above_label = 0
+					above_label_index = 0
 				if (y - 1 < 0):
-					left_label = 0
+					left_label_index = 0
 				
-				if ( (left_label == 0) and (above_label == 0) ):
+				if ( (left_label_index == 0) and (above_label_index == 0) ):
 					index += 1
 					clustered[x][y] = index
-				elif ( (left_label != 0) and (above_label == 0) ):
-					clustered[x][y] = left_label
-				elif ( (left_label == 0) and (above_label != 0) ):
-					clustered[x][y] = above_label
+				elif ( (left_label_index != 0) and (above_label_index == 0) ):
+					clustered[x][y] = left_label_index
+				elif ( (left_label_index == 0) and (above_label_index != 0) ):
+					clustered[x][y] = above_label_index
 				else:
 					# union time
+					label_list_copy = label_list.copy()
 					for i in range(len(label_list)):
-						if (label_list[i] == label_list[left_label]):
-							label_list[i] = label_list[above_label]
-					clustered[x][y] = left_label
+						if (label_list[i] == label_list[above_label_index]):
+							label_list_copy[i] = label_list[left_label_index]
+						clustered[x][y] = left_label_index
+					label_list = label_list_copy.copy()
 	copy = [[0 for x in range(lattice_size)] for y in range(lattice_size)]
 	for x in range(lattice_size):
 		for y in range(lattice_size):
