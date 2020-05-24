@@ -162,22 +162,25 @@ def display_lattice(clustered):
 	plt.show()
 
 def main():
+
 	lattice_size = 20
-	#Number of lattices we want to test
-	num_runs = 100
-	# number of lattices per probability
-	num_lattices = 10
-	# the different probabilities that we're testing	
-	# probabilities = [(n/num_runs) for n in range(num_runs)]
-	# y = [max_cluster_size(Perc(probabilities[n], lattice_size)) for n in range(num_runs)]
-	# plt.scatter(probabilities, y)
-	# plt.xlabel("Site Occupation Probability")
-	# plt.ylabel("Max Cluster Size")	
+	# while lattice_size < 100:
+	# 	#Number of lattices we want to test
+	# 	num_runs = 50
+	# 	# number of lattices per probability
+	# 	num_lattices = 10
+	# 	# the different probabilities that we're testing	
+	# 	probabilities = [(n/num_runs) for n in range(num_runs)]
+	# 	y = [get_average_cluster_size(Perc(probabilities[n], lattice_size)) for n in range(num_runs)]
+	# 	plt.scatter(probabilities, y)
+	# 	plt.xlabel("Site Occupation Probability")
+	# 	plt.ylabel("Max Cluster Size")	
+	# 	lattice_size += 10
 	# plt.show()
 
 
 	#showing a lattice as an image:
-	clustered = Perc(.5, lattice_size)
+	clustered = Perc(.65, lattice_size)
 	print(max_cluster_size(clustered))
 	print(get_average_cluster_size(clustered))
 	display_lattice(clustered)
