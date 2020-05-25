@@ -20,67 +20,10 @@ def Perc(probability, lattice_size):
 				lattice[x][y] = 1
 
 	# Using Hoshen-Kopelman alg to label the clusters
-	clustered = HK2(lattice)
+	clustered = HK(lattice)
 	return clustered
 
-
-def find(x):
-	global labels
-	return labels[x]
-
-
-def union(x, y):
-	global labels
-	global labeled
-	for i in range(len(labels)):
-		if (labels[i] == labels[x]):
-			labels[i] = labels[y]
-	return y
-
-
-# Runs the Hoshen-Kopelman algorithm
 def HK(lattice):
-	lattice_size = len(lattice)
-	global labels
-	global labeled
-	labeled = [[0 for x in range(lattice_size)] for y in range(lattice_size)]
-	largest_label = 0
-	# for every point
-	for x in range(lattice_size):
-		for y in range(lattice_size):
-			# if the point is occupied
-			if (lattice[x][y] == 1):
-				
-				# get the values of the point to its left and above it
-				left = labeled[x][y-1]
-				above = labeled[x-1][y]
-				if (x - 1 < 0):
-					above = 0
-				if (y - 1 < 0):
-					left = 0
-				# if neither are labeled
-				if ((left == 0) and (above == 0)):
-					# make a new cluster for this point
-					largest_label += 1
-					labeled[x][y] = largest_label
-				# the left one is labeled and the one above is not
-				elif ((left != 0) and (above == 0)):
-					# use the label of the one to the left
-					labeled[x][y] = left
-				# the cell above is labeled
-				elif ((left == 0) and (above != 0)):
-					# use the label of the one above
-					labeled[x][y] = above
-				#Both are labeled so we have to use union
-				else:
-					labeled[x][y] = union(left, above)
-
-	for x in range(lattice_size):
-		for y in range(lattice_size):
-			labeled[x][y] = labels[labeled[x][y]]
-	return labeled
-
-def HK2(lattice):
 	lattice_size = len(lattice)
 	global label_list
 	label_list = [n for n in range(int((lattice_size * lattice_size)/2))]
@@ -165,26 +108,26 @@ def display_lattice(clustered):
 def main():
 
 	lattice_size = 20
-	# while lattice_size < 100:
-	# 	#Number of lattices we want to test
-	# 	num_runs = 50
-	# 	# number of lattices per probability
-	# 	num_lattices = 10
-	# 	# the different probabilities that we're testing	
-	# 	probabilities = [(n/num_runs) for n in range(num_runs)]
-	# 	y = [get_average_cluster_size(Perc(probabilities[n], lattice_size)) for n in range(num_runs)]
-	# 	plt.scatter(probabilities, y)
-	# 	plt.xlabel("Site Occupation Probability")
-	# 	plt.ylabel("Max Cluster Size")	
-	# 	lattice_size += 10
-	# plt.show()
+	while lattice_size < 100:
+		#Number of lattices we want to test
+		num_runs = 50
+		# number of lattices per probability
+		num_lattices = 10
+		# the different probabilities that we're testing	
+		probabilities = [(n/num_runs) for n in range(num_runs)]
+		y = [get_average_cluster_size(Perc(probabilities[n], lattice_size)) for n in range(num_runs)]
+		plt.scatter(probabilities, y)
+		plt.xlabel("Site Occupation Probability")
+		plt.ylabel("Max Cluster Size")	
+		lattice_size += 10
+	plt.show()
 
 
 	#showing a lattice as an image:
-	clustered = Perc(.65, lattice_size)
-	print(max_cluster_size(clustered))
-	print(get_average_cluster_size(clustered))
-	display_lattice(clustered)
+	# clustered = Perc(.65, lattice_size)
+	# print(max_cluster_size(clustered))
+	# print(get_average_cluster_size(clustered))
+	# display_lattice(clustered)
 
 
 
