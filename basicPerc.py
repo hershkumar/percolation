@@ -54,11 +54,12 @@ def HK(lattice):
 							label_list_copy[i] = label_list[left_label_index]
 						clustered[x][y] = left_label_index
 					label_list = label_list_copy.copy()
-	copy = [[0 for x in range(lattice_size)] for y in range(lattice_size)]
+	# copy = [[0 for x in range(lattice_size)] for y in range(lattice_size)]
 	for x in range(lattice_size):
 		for y in range(lattice_size):
-			copy[x][y] = label_list[clustered[x][y]]
-	return copy
+			# copy[x][y] = label_list[clustered[x][y]]
+			clustered[x][y] = label_list[clustered[x][y]]
+	return clustered
 
 # gets the number of clusters after running HK
 def count_clusters(clustered):
@@ -105,25 +106,42 @@ def display_lattice(clustered):
 	cax = plt.colorbar(mat, ticks=np.arange(np.min(clustered),np.max(clustered)+1))
 	plt.show()
 
-def main():
-
-	lattice_size = 20
-	while lattice_size < 100:
-		#Number of lattices we want to test
-		num_runs = 50
-		# number of lattices per probability
-		num_lattices = 10
-		# the different probabilities that we're testing	
-		probabilities = [(n/num_runs) for n in range(num_runs)]
-		y = [get_average_cluster_size(Perc(probabilities[n], lattice_size)) for n in range(num_runs)]
-		plt.scatter(probabilities, y)
-		plt.xlabel("Site Occupation Probability")
-		plt.ylabel("Max Cluster Size")	
-		lattice_size += 10
+def plot_prob_vs_max(lattice_size, num_points, num_lattices):
+	# plots the average maximum lattice size against the probability that a site will be occupied
+	probabilities = [(n/num_points) for n in range(num_points)]
+	y = [0 for x in range(num_points)]
+	for x in range(num_points):
+		maxes = [0 for i in range(num_lattices)]
+		for i in range(num_lattices):
+			maxes[i] = max_cluster_size(Perc(probabilities[x], lattice_size))
+		y[x] = sum(maxes)/len(maxes)
+	plt.scatter(probabilities, y)
+	plt.title("Probability versus Max Cluster Size")
+	plt.xlabel("Site Occupation Probability")
+	plt.ylabel("Max Cluster Size")
 	plt.show()
 
 
-	#showing a lattice as an image:
+def main():
+
+	lattice_size = 20
+	# while lattice_size < 100:
+	# 	#Number of probabilities we want to test
+	# 	num_runs = 50
+	# 	# number of lattices per probability
+	# 	num_lattices = 10
+	# 	# the different probabilities that we're testing	
+	# 	probabilities = [(n/num_runs) for n in range(num_runs)]
+	# 	y = [get_average_cluster_size(Perc(probabilities[n], lattice_size)) for n in range(num_runs)]
+	# 	plt.scatter(probabilities, y)
+	# 	plt.xlabel("Site Occupation Probability")
+	# 	plt.ylabel("Max Cluster Size")	
+	# 	lattice_size += 10
+	# plt.show()
+
+	plot_prob_vs_max(20,500,10)
+
+	# showing a lattice as an image:
 	# clustered = Perc(.65, lattice_size)
 	# print(max_cluster_size(clustered))
 	# print(get_average_cluster_size(clustered))
