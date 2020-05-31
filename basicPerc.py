@@ -3,7 +3,8 @@
 import numpy as np
 import random
 from matplotlib import pyplot as plt
-
+# make error bars show up
+plt.rcParams.update({'errorbar.capsize': 2})
 # Gonna do it in 2D first
 # lattice_size is the length of the square lattice
 # probability is the probability that a site will be on/off (0-1) 
@@ -82,7 +83,6 @@ def get_cluster_sizes(clustered):
 	ret = [i for i in ret if i != -1]
 	return ret
 
-
 # returns the average cluster size in a lattice
 def get_average_cluster_size(clustered):
 	cluster_sizes = get_cluster_sizes(clustered)
@@ -106,47 +106,121 @@ def display_lattice(clustered):
 	cax = plt.colorbar(mat, ticks=np.arange(np.min(clustered),np.max(clustered)+1))
 	plt.show()
 
-def plot_prob_vs_max(lattice_size, num_points, num_lattices):
-	# plots the average maximum lattice size against the probability that a site will be occupied
+# computes the error in the computation of an average
+def get_error(values, num_resamples):
+	if (len(values) == 0):
+		average = 0
+	else:
+		average = sum(values)/len(values)
+	num_samples = len(values)
+	sampled_means = []
+	for i in range(num_resamples):
+		resampled = np.random.choice(values, num_samples)
+		resampled_average = 0
+		if (len(resampled) != 0):
+			resampled_average = sum(resampled)/len(resampled) 
+		sampled_means.append(resampled_average)
+	# get the stdev of the resampled means:
+	return np.std(sampled_means)
+
+def plot_prob_vs_max(lattice_size, num_points, num_lattices, num_error_resamples):
+	# plots the average maximum cluster size against the probability that a site will be occupied
 	probabilities = [(n/num_points) for n in range(num_points)]
 	y = [0 for x in range(num_points)]
+	errors = [0 for x in range(num_points)]
 	for x in range(num_points):
 		maxes = [0 for i in range(num_lattices)]
 		for i in range(num_lattices):
 			maxes[i] = max_cluster_size(Perc(probabilities[x], lattice_size))
 		y[x] = sum(maxes)/len(maxes)
-	plt.scatter(probabilities, y)
+		# error stuff will go here
+		errors[x] = get_error(maxes, num_error_resamples)
+
+	plt.errorbar(probabilities, y, yerr=errors,fmt='.')
 	plt.title("Probability versus Max Cluster Size")
 	plt.xlabel("Site Occupation Probability")
-	plt.ylabel("Max Cluster Size")
+	plt.ylabel("Max Cluster Size (log)")
+	plt.yscale('log')
+	plt.show()
+
+def plot_prob_vs_average(lattice_size, num_points, num_lattices, num_error_resamples):
+	
+	# plots the average cluster size against the probability of a site being occupied
+	probabilities = [(n/num_points) for n in range(num_points)]
+	averages = [0 for n in range(num_points)]
+	error = [0 for n in range(num_points)]
+	for i in range(num_points):
+		# get all of the values in one array
+		all_points = []
+		for j in range(num_lattices):
+			all_points.extend(get_cluster_sizes(Perc(probabilities[i], lattice_size)))
+
+		# compute the average
+		if (len(all_points) == 0):
+			average = 0
+		else:
+			average = sum(all_points)/len(all_points)
+		averages[i] = average
+		# get error bars for that probability
+		error[i] = get_error(all_points, num_error_resamples)
+	#plot it
+	plt.errorbar(probabilities, averages, yerr=error, fmt='.')
+	plt.title("Probability versus Average Cluster Size")
+	plt.xlabel("Site Occupation Probability")
+	plt.ylabel("Average Cluster Size (log)")
+	plt.yscale('log')
+	plt.show()
+
+#gets the raw data for averages, which can then all be plotted on one big chart
+def get_average_data(lattice_size, num_points, num_lattices, num_error_resamples):
+	probabilities = [(n/num_points) for n in range(num_points)]
+	averages = [0 for n in range(num_points)]
+	error = [0 for n in range(num_points)]
+	for i in range(num_points):
+		# get all of the values in one array
+		all_points = []
+		for j in range(num_lattices):
+			all_points.extend(get_cluster_sizes(Perc(probabilities[i], lattice_size)))
+
+		# compute the average
+		if (len(all_points) == 0):
+			average = 0
+		else:
+			average = sum(all_points)/len(all_points)
+		averages[i] = average
+		# get error bars for that probability
+		error[i] = get_error(all_points, num_error_resamples)
+	return (probabilities, averages, error)
+
+
+def plot_diff_lattice_sizes(lattice_sizes, num_points, num_lattices, num_error_resamples):
+	probabilities = [(n/num_points) for n in range(num_points)]
+	average_list = [[] for n in range(len(lattice_sizes))]
+	error_list = [[] for n in range(len(lattice_sizes))]
+
+	# get the data for each lattice size
+	for i in range(len(lattice_sizes)):
+		temp = get_average_data(lattice_sizes[i], num_points, num_lattices, num_error_resamples)
+		average_list[i] = temp[1]
+		error_list[i] = temp[2]
+		plt.errorbar(probabilities, average_list[i], yerr=error_list[i], fmt='.')
+		print("Completed lattice size " + str(lattice_sizes[i]))
+
+	plt.title("Probability versus Average Cluster Size")
+	plt.xlabel("Site Occupation Probability")
+	plt.ylabel("Average Cluster Size (log)")
+	legend_labels = [0 for n in range(len(lattice_sizes))]
+	for i in range(len(lattice_sizes)):
+		legend_labels[i] = "Lattice Size " + str(lattice_sizes[i])
+	plt.legend(legend_labels, loc='lower right')
+	plt.yscale('log')
 	plt.show()
 
 
 def main():
-
-	lattice_size = 20
-	# while lattice_size < 100:
-	# 	#Number of probabilities we want to test
-	# 	num_runs = 50
-	# 	# number of lattices per probability
-	# 	num_lattices = 10
-	# 	# the different probabilities that we're testing	
-	# 	probabilities = [(n/num_runs) for n in range(num_runs)]
-	# 	y = [get_average_cluster_size(Perc(probabilities[n], lattice_size)) for n in range(num_runs)]
-	# 	plt.scatter(probabilities, y)
-	# 	plt.xlabel("Site Occupation Probability")
-	# 	plt.ylabel("Max Cluster Size")	
-	# 	lattice_size += 10
-	# plt.show()
-
-	plot_prob_vs_max(20,500,10)
-
-	# showing a lattice as an image:
-	# clustered = Perc(.65, lattice_size)
-	# print(max_cluster_size(clustered))
-	# print(get_average_cluster_size(clustered))
-	# display_lattice(clustered)
-
+	#plot_prob_vs_max(20,50,20,100)
+	#plot_prob_vs_average(20,50,20,100)
+	plot_diff_lattice_sizes([5, 20, 50, 100], 50, 20, 100)
 
 
 main()	
