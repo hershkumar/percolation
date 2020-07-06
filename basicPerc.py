@@ -3,6 +3,7 @@
 import numpy as np
 import random
 from matplotlib import pyplot as plt
+import timeit
 # make error bars show up
 plt.rcParams.update({'errorbar.capsize': 2})
 # Gonna do it in 2D first
@@ -163,6 +164,7 @@ def plot_prob_vs_average(lattice_size, num_points, num_lattices, num_error_resam
 		averages[i] = average
 		# get error bars for that probability
 		error[i] = get_error(all_points, num_error_resamples)
+		print("point " + str(probabilities[i]) + " completed")
 	#plot it
 	plt.errorbar(probabilities, averages, yerr=error, fmt='.')
 	plt.title("Probability versus Average Cluster Size")
@@ -215,12 +217,45 @@ def plot_diff_lattice_sizes(lattice_sizes, num_points, num_lattices, num_error_r
 	plt.legend(legend_labels, loc='lower right')
 	plt.yscale('log')
 	plt.show()
+# plots the averages for a certain range of probabilities
+def plot_probability_range(lattice_size, num_points, num_lattices, num_error_resamples, prob_low_end, prob_high_end):
+	# plots the average cluster size against the probability of a site being occupied
+	probabilities = [prob_low_end for n in range(num_points)]
+	# initialize the probability array to fit the range
+	step  = (prob_high_end - prob_low_end)/num_points
+	for i in range(num_points):
+		if (i != 0):
+			probabilities[i] = probabilities[i - 1] + step
 
+	averages = [0 for n in range(num_points)]
+	error = [0 for n in range(num_points)]
+	for i in range(num_points):
+		# get all of the values in one array
+		all_points = []
+		for j in range(num_lattices):
+			all_points.extend(get_cluster_sizes(Perc(probabilities[i], lattice_size)))
+
+		# compute the average
+		if (len(all_points) == 0):
+			average = 0
+		else:
+			average = sum(all_points)/len(all_points)
+		averages[i] = average
+		# get error bars for that probability
+		error[i] = get_error(all_points, num_error_resamples)
+		print("point " + str(probabilities[i]) + " completed")
+	#plot it
+	plt.errorbar(probabilities, averages, yerr=error, fmt='.')
+	plt.title("Probability versus Average Cluster Size")
+	plt.xlabel("Site Occupation Probability")
+	plt.ylabel("Average Cluster Size (log)")
+	plt.yscale('log')
+	plt.show()
 
 def main():
 	#plot_prob_vs_max(20,50,20,100)
-	#plot_prob_vs_average(20,50,20,100)
-	plot_diff_lattice_sizes([5, 20, 50, 100], 50, 20, 100)
-
+	#plot_prob_vs_average(10,50,20,100)
+	#plot_diff_lattice_sizes([5, 20, 50, 100], 50, 20, 100)
+	plot_probability_range(1000, 5, 1, 100, .5, .7)
 
 main()	
