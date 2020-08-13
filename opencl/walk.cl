@@ -1,9 +1,8 @@
-#pragma OPENCL EXTENSION cl_intel_printf : enable
 
 // length of the random walks
 #define STEPS 100000
 // the probability that the walk is running at
-#define PROB .6
+#define PROB .5
 
 #define UINT_MAX 0xffffffff
 
@@ -27,6 +26,7 @@ uint rng(uint state){
 	
 	return x;
 }
+
 // maps a float between 0 and 1 to an int between 0 and cap (exclusive)
 int rng_range(float in, int cap){
 	// get a number between 0 and 1
@@ -35,6 +35,7 @@ int rng_range(float in, int cap){
 	int ret = (int) tmp;
 	return ret;
 }
+
 // the old "stupid" hash function we were using
 uint hash(int x, int y){
 	int XORSHIFT_TIMES = 10;
@@ -44,7 +45,6 @@ uint hash(int x, int y){
 	}
 	return seed;
 }
-
 
 // Optimizations marked with "OPT". I don't always know why they help.
 
@@ -253,6 +253,7 @@ uint md4(uint* input) {
 uint md5(const global uint* input) {
 	return 0;
 }
+
 // function to check whether a site is on or off
 bool is_on(int seed, int x, int y){
 	if (x == 0 && y == 0){
@@ -264,26 +265,33 @@ bool is_on(int seed, int x, int y){
 	return higher;
 }
 
+// gets a random number from 0 to n
+// meant for picking the neighbor to move to
+int md_rand(int seed, int step_num, int n){
+	uint dat[] = {seed, step_num, 0, 0, 0, 0, 0, 0};
+	// get the big random number from the hash
+	uint hashed = md4(dat);
+	// convert it to a float between 0 and 1
+	float temp = (float) hashed / UINT_MAX;
+	// convert that float to an int between 0 and n
+	temp *= n;
+	return (int) temp;
+	
+}
 
 // the actual walk
 void kernel run_walk(global const uint* seed, global double* output, global double* debug){
 	// get the global id to seed the rng with
 	int gid = get_global_id(0);
-	// seed the rng
-	uint curr_state = gid + seed[0];
-	for (int i = 0 ; i <  20; i++){
-		curr_state = xorshift(curr_state);
-	}
+
+	int lattice_seed = gid;
+	int rand_seed = ~gid;
 	
 	// set the starting coords to (0,0)
 	uint cx = 0;
 	uint cy = 0;
 	
 	double dist = 0;
-
-	// step size
-	float x[STEPS];
-	float y[STEPS];
 	
 	for (uint step = 0; step < STEPS; step++){
 		// get the neighbors of the point
@@ -291,28 +299,21 @@ void kernel run_walk(global const uint* seed, global double* output, global doub
 		// check which neighbors are on
 		uint num_on = 0;
 		for (int i = 0; i < 4; i++){
-			curr_state = xorshift(curr_state);
-			 if (is_on(gid, neb[i][0], neb[i][1])){
+			 if (is_on(lattice_seed, neb[i][0], neb[i][1])){
 				num_on++;
 			}
 		}
 		
 		// if there are open neighbors, do the choice thing
 		if (num_on != 0){
-			curr_state = rng(curr_state);
-			//convert the random number given by curr_state to a float between 0 and 1
-			float curr_float = (float) curr_state  / UINT_MAX;
-			
 			// we want to pick the choice'th on point
-			int choice = rng_range(curr_float, num_on);
-			
+			int choice = md_rand(rand_seed, step, num_on);
 
 			// loop through until we have found the right number of points that are on
-			int count = 0;
+			int count = -1;
 			for (int i = 0 ; i < 4; i++){
 				// advance the counter when we find one that's on
-				curr_state = xorshift(curr_state);
-				if (is_on(gid, neb[i][0], neb[i][1])){
+				if (is_on(lattice_seed, neb[i][0], neb[i][1])){
 					count++;
 				}
 				//once we find the right one, we move to it
@@ -327,9 +328,11 @@ void kernel run_walk(global const uint* seed, global double* output, global doub
 			cx = cx;
 			cy = cy;
 		}
+		// note: can move this to end
 		dist = pow(cx * cx + cy * cy, .5);
 		
 	}
+
 	output[gid] = dist;
 	
 }
