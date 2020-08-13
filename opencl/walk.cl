@@ -1,8 +1,8 @@
 
 // length of the random walks
-#define STEPS 100000
+//#define STEPS 1000000
 // the probability that the walk is running at
-#define PROB .5
+//#define PROB .6
 
 #define UINT_MAX 0xffffffff
 
@@ -255,7 +255,7 @@ uint md5(const global uint* input) {
 }
 
 // function to check whether a site is on or off
-bool is_on(int seed, int x, int y){
+bool is_on(int seed, int x, int y, float PROB){
 	if (x == 0 && y == 0){
 		return true;
 	}
@@ -265,7 +265,7 @@ bool is_on(int seed, int x, int y){
 	return higher;
 }
 
-// gets a random number from 0 to n
+// gets a random number from 0 to n [0,n)
 // meant for picking the neighbor to move to
 int md_rand(int seed, int step_num, int n){
 	uint dat[] = {seed, step_num, 0, 0, 0, 0, 0, 0};
@@ -280,18 +280,21 @@ int md_rand(int seed, int step_num, int n){
 }
 
 // the actual walk
-void kernel run_walk(global const uint* seed, global double* output, global double* debug){
+void kernel run_walk(global const uint* seed, global const uint* stepin, global const float* probin, global double* output, global double* debug){
+	const uint STEPS = stepin[0];
+	const float PROB = probin[0];
+
 	// get the global id to seed the rng with
 	int gid = get_global_id(0);
-
-	int lattice_seed = gid;
-	int rand_seed = ~gid;
+	
+	int lattice_seed = gid + seed[0];
+	int rand_seed = ~gid + seed[0];
 	
 	// set the starting coords to (0,0)
 	uint cx = 0;
 	uint cy = 0;
 	
-	double dist = 0;
+	double sqdist = 0;
 	
 	for (uint step = 0; step < STEPS; step++){
 		// get the neighbors of the point
@@ -299,42 +302,68 @@ void kernel run_walk(global const uint* seed, global double* output, global doub
 		// check which neighbors are on
 		uint num_on = 0;
 		for (int i = 0; i < 4; i++){
-			 if (is_on(lattice_seed, neb[i][0], neb[i][1])){
+			 if (is_on(lattice_seed, neb[i][0], neb[i][1], PROB)){
 				num_on++;
 			}
 		}
-		
+		/*
+		printf("GID = %d \t at (%d, %d)\n", gid, cx, cy);
+		for(int i = 0; i < 4; i++)
+			printf("GID = %d \t%dth neighbor:\t(%d, %d)\t%d\n", gid, i, neb[i][0], neb[i][1], is_on(lattice_seed, neb[i][0], neb[i][1]));
+		printf("\n");
+		*/
 		// if there are open neighbors, do the choice thing
 		if (num_on != 0){
 			// we want to pick the choice'th on point
 			int choice = md_rand(rand_seed, step, num_on);
-
+			
 			// loop through until we have found the right number of points that are on
 			int count = -1;
 			for (int i = 0 ; i < 4; i++){
 				// advance the counter when we find one that's on
-				if (is_on(lattice_seed, neb[i][0], neb[i][1])){
+				if (is_on(lattice_seed, neb[i][0], neb[i][1], PROB)){
 					count++;
 				}
 				//once we find the right one, we move to it
 				if (count == choice){
 					cx = neb[i][0];
 					cy = neb[i][1];
+					break;
 				}
 			}
 		}
-		// if there are no open neighbors, stay in the same spot
+		// if there are no open neighbors, end the run
 		else{
-			cx = cx;
-			cy = cy;
+			break;
 		}
-		// note: can move this to end
-		dist = pow(cx * cx + cy * cy, .5);
 		
 	}
+	sqdist = cx * cx + cy * cy;
+	output[gid] = sqdist;
 
-	output[gid] = dist;
-	
+	/*
+	// debug to check our RNG
+	int count = 0;
+	int total = 1000;
+
+	for(int i = 0; i < total; i++) {
+		if(md_rand(rand_seed, i, 100) < PROB * 100) {
+			count++;
+		}
+	}
+	printf("RNG Count: %d \n", count);
+	// checking the lattice sites
+	count = 0;
+	for (int i = 0; i < 100; i++){
+		for (int j = 0 ; j < 100; j++){
+			if (is_on(lattice_seed, i, j)){
+				count++;
+			}
+		}
+	}
+	printf("Lattice Count: %d \n", count);
+	*/
+
 }
 
 void kernel run_debug(global double* debug){

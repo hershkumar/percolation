@@ -225,11 +225,16 @@ uint32_t MD5(uint32_t input[8]) {
 
 
 //const std::string KERNEL_PATH("../../gpu/walks.cl");
-const std::string KERNEL_PATH("walk.cl");
-const cl_uint ARRAY_SIZE = 10000;
-const cl_uint SEED = 317;
 
-int main() {
+
+int main(int argc, char* argv[]) {
+	const std::string KERNEL_PATH("walk.cl");
+	//args given via commandline
+	const cl_uint ARRAY_SIZE = atoi(argv[1]);
+	const cl_uint SEED = atoi(argv[2]);
+	const cl_uint STEPS = atoi(argv[3]);
+	const cl_float PROB = atof(argv[4]);
+
     cl_int errNum;
     std::vector<cl::Platform> platforms;
     cl::Platform platform;
@@ -281,18 +286,24 @@ int main() {
     cl::Buffer outputBuffer(context, CL_MEM_WRITE_ONLY, sizeof(cl_double) * ARRAY_SIZE);
     cl::Buffer debugBuffer(context, CL_MEM_WRITE_ONLY, sizeof(cl_double) * ARRAY_SIZE);
     cl::Buffer seedBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_uint));
+	cl::Buffer stepBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_uint));
+	cl::Buffer probBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float));
 
     cl::CommandQueue queue(context, defaultDevice);
     cl::Kernel run_walk = cl::Kernel(program, "run_walk");
 
     // copy over the seed to the GPU memory
     queue.enqueueWriteBuffer(seedBuffer, CL_TRUE, 0, sizeof(cl_uint), &SEED);
+	queue.enqueueWriteBuffer(stepBuffer, CL_TRUE, 0, sizeof(cl_uint), &STEPS);
+	queue.enqueueWriteBuffer(probBuffer, CL_TRUE, 0, sizeof(cl_float), &PROB);
 
     // run the kernel
     cl::Kernel kernel = cl::Kernel(program, "run_walk");
     kernel.setArg(0, seedBuffer);
-    kernel.setArg(1, outputBuffer);
-    kernel.setArg(2, debugBuffer);
+	kernel.setArg(1, stepBuffer);
+	kernel.setArg(2, probBuffer);
+    kernel.setArg(3, outputBuffer);
+    kernel.setArg(4, debugBuffer);
     queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(ARRAY_SIZE), cl::NullRange);
     queue.finish();
 
@@ -327,14 +338,14 @@ int main() {
 
     double sum = 0;
     for (int i = 0; i < ARRAY_SIZE; i++) {
-        sum += output[i];
+        sum += pow(output[i],.5);
     }
     average = sum / ARRAY_SIZE;
     std::cout << "Computed an average of: " << average << std::endl;
 
     double sumDist = 0;
     for (int i = 0; i < ARRAY_SIZE; i++)
-        sumDist += pow(output[i] - average, 2);
+        sumDist += pow(pow(output[i], .5) - average, 2);
     stdev = sqrt(sumDist / (ARRAY_SIZE - 1));
     std::cout << "Computed a standard deviation of: " << stdev << std::endl;
     
